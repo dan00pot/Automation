@@ -1,0 +1,45 @@
+adb shell uiautomator dump 
+adb pull /sdcard/window_dump.xml ui.uix 
+adb shell screencap -p /sdcard/ui.png 
+adb pull /sdcard/ui.png
+
+http://10.255.250.188:7990/scm/aads/investigate-gradle.git
+
+
+
+
+
+Prepare data base before run scripts:
+1. Create user login equinox client
+2. Check and add user SMGR with display name "user01 smgr" and "test01 smgr" (CS_16)
+3. Check and add user LDAP with display name "Franklyn Rush" (CS_30)
+
+
+Prepare data base before run scripts: Contact Resolution
+1. login win = user kwagner@aam1.com 80072
+    +add 3 user to contacts:
+     80071 Franklyn Rush
+     80073 Lexie Knapp
+     80074 Madeleine Bernal
+
+2. login android user frush@aam1.com 80071
+    +add 3 user to contacts:
+     80072 Kristin Wagner
+     80073 Lexie Knapp
+     80074 Madeleine Bernal
+
+3. login iOS user lknapp@aam1.com 80073
+    +add 3 user to contacts conclude:
+     80071 Franklyn Rush
+     80072 Kristin Wagner
+     80074 Madeleine Bernal
+
+4. Check and create user 73950 "EXT 73950", 73951, 73952 H323 and verify don't has any user using the number phone (user login onex)
+5 Check and create user 73953 SMGR:"EXT, 73953" Ldap:"AMM 73960, 73961, 73962 with display name LDAP: AMM 73960 SMGR :EXT, 73960
+5 note check ldap has phone number and using mail user ldap add to user smgr 
+*Note Setting > User Preferences > Name Display Preferences: "First, Last"
+
+https://medium.com/2359media/tutorial-automated-testing-on-ios-with-appium-test-ng-and-java-on-mac-bc115d0ec881
+
+
+//android.widget.TextView[@text='Favorites']/../../following-sibling::android.widget.FrameLayout//android.widget.TextView[@text='Contacts']

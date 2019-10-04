@@ -1,0 +1,625 @@
+NOTE FOR ALL:
+#####################################################################################################################################
+#####################################################################################################################################
+ 
+ 3. Software service
+ 
+ http://10.255.245.29
+ 
+ #####################################################################################################################################
+ 
+ 4. Webdeployment AADS (co 3 port 8445, 443, 8442)
+	+ mo port 8442
+		cdto misc
+		sudo ./webdeployment-patch.sh enable
+		
+	+get host SMGR and add host to host file and proxy chorm
+	    puty SMGR
+		   ucmsg >su root
+			root >cat /etc/hosts
+			127.0.0.1               localhost.localdomain localhost
+			10.255.250.80           smgr25080.aam1.com smgr25080
+			::1             localhost6.localdomain6 localhost6
+			10.255.250.80           grsmgr.aam1.com  grsmgr
+			10.255.245.58   ol24558.aam1.com
+		using infomation above and add to host file and proxy chorm
+
+	+config webdeployment
+	    +create link with port 8442
+			https://aads1.aam1.com:8442/acs/resources/webdeployment/downloads/Avaya Equinox Setup - 3.6.0.110.25.msi
+		+dynamic config
+			APPCAST_ENABLED 1
+			APPCAST_URL https://aads1.aam1.com:8442/acs/resources/webdeployment
+			APPCAST_CHECK_INTERVAL 1
+		+save and public user
+		
+ #####################################################################################################################################
+ 
+ 5. Autoconfig get data from SMGR
+    chu y nhung con dang dc sync tren SMGR (AMM)
+
+ #####################################################################################################################################
+ 6. iview OTT khong co con AAWG
+    +Add SM, AADS, Mediaserver
+    +add cerftificate iview and mediaserver
+	    Equinox Management Certificate > new CSR > dowload > iview.pem
+		SMGR > Security > Authority > Add End Entity > tai day tao accout tam thoi de tao cert pem
+		Cung tai day chon > Public Web > Create Certificate from CSR
+		Cung tai SMGR > CA Structure & CRLs 
+	+Them dau so 77 tren CM de su dung meeting
+	
+#####################################################################################################################################
+ 
+7. Ugrade AADS from bin    //ll commande de xem list file
+
+	+app removeinactive > remove //xoa phien ban khong hoat dong truoc khi upgrade
+	+cd /opt/Avaya //co cung duoc khong co cung dc
+	+sudo wget http://10.255.245.29:8080/MSG_FILESERVER/AADS_BUILD/8.0.0/Sprint%2057/aads-8.0.0.0.232.bin
+	//+sudo chown admin:admingrp aads-8.0.0.0.232.bin
+	+sudo chown ucapp:ucgrp aads-8.0.0.0.232.bin
+	+sudo chmod 755 aads-8.0.0.0.232.bin //750
+    +app install aads-8.0.0.0.232.bin
+	+svc aads restart // restart service sau khi upgrade
+	*nslookup <IP muon check> //de check cac he thong SM SMGR LDAP da duoc sycn va config dung cho AADS sau khi ugrade dung lenh 
+	 
+8. Slient install AADS (khong cai duoc ipv6 voi slient)
+    
+	*//Silent install khong cai duoc voi ipv6 nha
+	*//bat fip neu co yeu cau nha may che^ : 
+	*// authenticate check cho ldap tai web gui cua aads phan ldap nha neu khong bat aouth thi no khong^ co' hie^n~ thi. dau nha nha nha
+
+	+tao file installation.properties
+		Tu base(/opt/Avaya):	 sudo ./aads-<version>.bin --tar xf -- ./installation.properties
+		Move file den folder admin:		sudo mv installation.properties /home/admin
+		Luu file ve may sau do dieu chinh nhung truong muon config va copy lai den server (using WinSCP) su dung: cdto config > cat install.propertise de xem thong tin
+		
+	+tail -f /opt/Avaya/DeviceServices/<version>/logs/AADS.log
+	+app unsinstall force //xoa toan bo moi thu
+
+9. Cai ova //luu y phien ban ova phai phu hop voi file bin
+
+	+Remote Desktop: 10.255.253.47 Password: tma_12Tma
+	+http server 10.255.245.29:8080 chua file cai dat
+	+VMwera login 10.255.245.251  User: administrator@vsphere.local   password: tma_12Tma
+	+During deploying AADS OVA:
+		FQDN: aads25016.aam1.com
+		IP: 10.255.250.16
+		Subnet mask:  255.255.255.0
+		Default Gateway: 10.255.250.1
+		Default Search List: aam1.com
+		DNS Server: 10.255.253.47
+		NTP server: 10.255.249.28
+		Login name for application: admin
+		Initial password: avaya123
+		Timezone: Asia/Ho_Chi_Minh 
+
+11. System layer upgrade AADS
+
+	+download system layer upgrade:	 ucapp-system-3.5.0.0.9.tgz transfer to /home/admin
+	+extract file:	 tar -zxf ucapp-system-3.5.0.0.9.tgz
+	+start update:		cd ucapp-system-3.5.0.0.9 > sudo ./update.sh --stage
+		mo lai putty va dung lenh 	sysUpdate --install de tien hanh chay nha
+	+To free up disk space: 	cd.. > rm ucapp-system-3.5.0.0.9.tgz  > rm -rf ucapp-system-3.5.0.0.9
+	+verify update system layer:		sysUpdate --status			sysUpdate --monitor
+	
+12. install new fips and ipv6 aads build 8.0.0.0.249
+
+	*//bat ipv6 thi khi qua buoc set up ban dau phai hien muc ipv6 config
+	*//luu y update system layer new can nha
+	+cai dat OVA 8.0 xem muc 9
+	+luu y tao uility server aads server ip4 va ip6 tren DNS server (//ex 10.255.253.47)
+	+enable ipv6
+		de xem duoc thong tin ipv6 ta dung cai nay nha may cung oi:		sys ipv6config show
+		su dung lenh nay de set ipv6 nhe may cung:	sys ipv6config set	fc00:fc00:fc00:250::145		default fc00:fc00:fc00:250::1	lenght 64
+	+enable fips
+		su dung lenh sau de enable fips:  sys secconfig --fips --enable  //1 di khong tro lai nha may che^
+		de kiem tra xem fips da duoc bat hay chua dung cai nay heng:  fipscheck 
+	+installation
+		su dung lenh 	app install aads-8.0.0.0.249.bin
+	+config initial
+		ipv6 ennable
+		utility server y
+		USE_SMGR=y
+		SYSTEM_MGR_VERSION=7
+		SYSTEM_FQDN=smgr25018.aam1.com
+		SYSTEM_MGR_HTTPS_PORT=443
+		SYSTEM_MGR_PW=tma_12Tma
+		SMGR_USER_NAME=admin
+		SMGR_USER_PASSWORD=tma_12Tma
+		SMGR_REST_WEB_URL=smgr25018.aam1.com
+		SEED_NODE=10.255.250.145
+		SESSION_MANAGER_IP=10.255.250.19
+		ASSET_HOST_IP=10.255.245.9
+	+config LDAP from file.propertises
+		link den file ad2016.cer
+		link den ad2016s.properties
+	
+13. backup:		app backup -t //luu y la chi ap dung o home thoi nha 
+
+14. Trouble install fail and lost app uninstall
+	+sudo /opt/Avaya/DeviceServices/<version>/CAS/<version>/uninstaller/
+	+sudo uninstallAADS.sh
+
+#####################################################################################################################################
+
+14. Utility server
+ 
+ 
+ 
+ #####################################################################################################################################
+ 
+ 15. SMGR notepad
+ 
+ //cert luu y cai han su dung cua cert tren SMGR
+ 
+ 
+ 
+ 16. Loi port 443/8443/8445/80	//luu y khi thuc hien mo port 443 to 8443 thi port 8442 reset ve default va phai bat lai neu muon dung WebDeployment
+	+fix (//mo lai port 80)
+		cdto misc
+		sudo ./us-http-port.sh --enable 
+
+
+#######################################################################################################################################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/Avaya Aura Web Gateway Services~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***************************************************************************************************************************************
+
+1. Installation AAWG_FIPS_IPV6
+
+	+install OVA xem tuong tu nhu cai OVA cho AADS //luu y system layer ho tro cho tung phien ban. neu dang thap hon thi update len
+		download system layer upgrade:	 ucapp-system-3.5.0.0.9.tgz transfer to /home/admin
+		extract file:	 tar -zxf ucapp-system-3.5.0.0.9.tgz
+		start update:		cd ucapp-system-3.5.0.0.9 > sudo ./update.sh --stage
+		mo lai putty va dung lenh 	sysUpdate --install de tien hanh chay nha
+		To free up disk space: 	cd.. > rm ucapp-system-3.5.0.0.9.tgz  > rm -rf ucapp-system-3.5.0.0.9
+		verify update system layer:		sysUpdate --status			sysUpdate --monitor
+	+enable FIPS mode 	sys secconfig --fips --enable  //1 di khong tro lai nha may che^
+	+enable IPV6:
+	+install bin file //tuong tu nhu aads
+	
+	
+2. Equinox for web
+	
+	+Instalation equinox for web
+		open Chorme > setting > Extensions > search and install equinox for web
+	+AADS add trusthost
+		Server Connections > Trusted Hosts > add & import "FQDN of AAWG" > Save
+	+AADS open port 8440
+		cdto misc
+		sudo ./dynamicconfigurations-patch.sh enable
+	+AADS create a new dynamic configurations
+		COMM_ADDR_HANDLE_TYPE
+		COMM_ADDR_HANDLE_LENGTH
+		//luu y nho vao tab group set 2 value cho 2 truong tren 
+	+Sigin on equinox for web
+		Device Services server:		aads250145.aam1.com
+		Service gateway:			esg250206.aam1.com
+		User						"user ldap config"
+	+Link ESG on SMGR
+		Elements > Routing > SIP Entities
+		New 	* Name:	esg250206
+				* IP Address Family: IPV4
+				* FQDN or IPv4 Address:	10.255.250.206
+				  Type:	SIP Trunk
+		*Entity Links
+				//link den con SM
+
+#######################################################################################################################################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/Iview-Portal_Conference~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***************************************************************************************************************************************
+
+1. Config dau so 77 de su dung iview conference tren SMGR va CM
+
+	+Config value SIP Endpoint Managed Transfer to Y
+		CM > change system-parameters features > F7 --> SIP Endpoint Managed Transfer to Y //edit to y
+	+Tao SIP Entities //cai nay la tao cai lien ket con iview vao SMGR nha
+		SMGR > Routing > SIP Entities
+		EX:		Name: 	Scopia
+				IP:		10.255.250.154 //ip iview
+				Type:	SIP Trunk
+		*//luu y cai entity link la de link den cau hinh cua con SM da cau hinh truoc do *** SIP Entity 1: sm2443 ; SIP Entity 2 Scopia	
+	+Tao Dial Pattern
+		SMGR > Routing > Dial Patterns
+		EX:		Pattern: 77
+				Min: 7
+				Max: 7
+		*//add them location nha
+	+Tao Routing Policies
+		SMGR > Routing > Routing Policies
+		EX:		Name:	AMM_Scopia
+				SIP Entity as Destination: 	Scopia	IPv4	10.255.250.154 //link lai toi SIP Entities da tao
+				Time of Day add them vao
+				Dial Patterns //dau so 77 da config tren nhe
+	
+#######################################################################################################################################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/SMGR not sync AADS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***************************************************************************************************************************************
+//khi bi loi khong sync duoc thi phai kiem tra xem ly do la do con nao dung nslookup FQDN/IP va ping FQDN/IP de check xem con nao khong ping thay
+1. SMGR not ping to FQDN AADS
+	+ Kha nang cao la chua add hosts cho SMGR 
+		su - root 
+		vi /etc/hosts //edit bang cach bo xung them hosts 
+		esc > :wq!
+		
+#######################################################################################################################################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~/Automation ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+***************************************************************************************************************************************
+
+1. Install all automation
+	+Java SDK
+		install java jre 1.8.0.121 //dung google dai phap di nha
+		config JAVA_HOME vao BATH win: This Pc > Properties > Advanced system settings > Environment Variables > create JAVA_HOME
+		On tab System Variables 
+	+Android SDK
+		chi tai sdk tool thoi nha //search google kiem file installer_r24.4.1-windows.exe
+		build-tool, platform-tool, platform, tool //build-tools_r29-windows.zip, platform-29_r01.zip, platform-tools_r29.0.1-windows.zip, tools_r25.2.5-macosx.zip
+		confi ANDROID_HOME tuong tu nhu JAVA_HOME tao bien ANDROID_HOME va link den folder chua android sdk
+	+Appium: http://appium.io/
+	+install AutoIT
+	
+ #####################################################################################################################################	
+ 
+ 2. AutoIT
+ 
+ https://www.guru99.com/use-autoit-selenium.html
+ code demo upload image:
+	{
+		ControlFocus("Insert Picture","","Edit1") //focus vao cua so can thuc hien hanh dong
+		ControlSetText("Insert Picture","","Edit1","C:\Users\NGUYEN NGOC DUY\Desktop\icom.png")//dien input
+		ControlClick("Insert Picture","","Button1")//click button
+	}
+	
+ #####################################################################################################################################
+ 
+ 3. Bitbucket
+ 
+ http://10.255.250.188:7990/ 	Username: aadsuser 			Password: aads_12AADS 
+ 
+    + Project Manager > Import (right click) > Import from Git(URL)
+	+
+		
+		
+ 
+ ####################################################################################################################################
+ 
+ ***config internet and proxy
+	+exceptions:	*.aam1.com;10.255.*.*;10.128.*.*
+	+HTTP:			10.10.10.10:8080
+ 
+ 4. Using Gradle
+	// link example https://o7planning.org/vi/11237/huong-dan-su-dung-gradle-cho-nguoi-moi-bat-dau
+	+create new project
+		Trên Eclipse chọn "New/Other/Gradle" > next> select name > next
+
+	****build.gradle************ 
+	//là file để bạn cấu hình các thư viện sẽ được sử dụng trong project. Nó giống với pom.xml trong Maven Project
+	+	Example add new library
+	
+######################################################################################################################################
+
+5. Using bitbucket
+	+Installation git: 	https://git-scm.com/downloads
+	+Config git user on local PC:
+		>git config --global user.name "your name" // Duy Nguyen
+		>git config --global user.email "your TMA email" // nnduy2@tma.com.vn
+	+Make Eclipse ready for Git
+		
+######################################################################################################################################
+Install all Aura		 
+######################################################################################################################################		
+ 1. SMGR Deploy
+	+Install OVA
+		Login vmware and create ova: new Deploy OVA 
+		name: AADS_SMGR_245100
+		host: 10.255.245.x
+		Thick or Thin provision(thin trong truong hop thieu resource)
+		ip: 10.255.245.100
+		NestMark: 255.255.255.0
+		Gateway: 10.255.245.1
+		DNS: 10.255.253.47
+		hostname: smgr245100.aam1.com
+		ipv6: fc00:fc00:fc00:245::100 	prefit:64 	default: fc00:fc00:fc00:245::1
+		NTP: 10.255.249.28
+		virtual FQDN: vsmgr245100	domain: aam1.com
+		SNMP: smgr245100-snmp	pass: tma_12Tma (4 lan)
+		SMGR CLI USER: ucmsg	pass: ucmsg_12Ucmsg (2 lan)
+		Backup Definition: uncheck
+		end select 1
+		next> finish
+	+ Edit setting ova moi cai
+		Edit> setting > Resources/CPU/Reservation: 0
+		Power on: new Ova
+	+SSH to 10.255.245.100 ucmsg/ucmsg_12Ucmsg
+		su - sroot
+		get product id and challeger
+		goto website sroot of Avaya login and get key root
+		pate ssh command and Enter
+	+Change pass root
+		root> passwd root
+		tma_12Tma
+	+Install binfile
+		cd swlibrary 
+		wget "bin from hsf link"
+		SMGRPatchdeploy +name bin
+	+SSH smgr245100
+		reboot
+2. Deploy SM (chi deploy khi SMGR da bat va on dinh)
+	+Install OVA
+		Login vmware and create ova: new Deploy OVA 
+		name: AADS_SM_245101
+		host: 10.255.245.x
+		Thick or Thin provision(thin trong truong hop thieu resource)
+		hostname: smgr245101
+		domain: aam1.com
+		ip: 10.255.245.101
+		NestMark: 255.255.255.0
+		Gateway: 10.255.245.1
+		DNS: 10.255.253.47
+		ipv6: fc00:fc00:fc00:245::101 	prefit:64 	default: fc00:fc00:fc00:245::1
+		Timezon: Asian/Saigon
+		NTP: 10.255.249.28
+		Search domain: aam1.com
+		primary System Manager: 10.255.245.100
+		pass enroll: tma_12Tma (2)
+		cust /cust_12Cust (2)
+		EASG 1
+		next> finish
+	+web SMGR edit Enrollment Password
+		go to SMGR and Serch "Enroll"
+		set 4 week 	pass: tma_12Tma (2)
+		commit
+	+start SM:
+		command: ????????????//quen mo no roi
+		patchSM + "filename.bin" de install bin file //deny SM on SMGR firt (Session Manager)
+	+VMWare 
+		Edit SM> Setting > CPU > Resservation:0
+		power on
+	+Check Repliant on SMGR
+		****if ceft not trust: initTM (sync lai cert using SSH to SM)
+	****upgrade bin file //luu y phai deny on SMGR element>session Manage 
+		patchSM + "file bin"
+	
+3. Deploy CM (chi deploy khi SMGR da bat va on dinh)
+	+Install OVA
+		load OVA	41000 user	network: 10.255.245.x
+		ip: 10.255.245.103
+		GW:	10.255.245.1
+		ipv6: fc00:fc00:fc00:245::103
+		cmhostname: cm245103.aam1.com
+		NTP: 10.255.249.28
+		DNS: 10.255.253.47
+		Search Domain: aam1.com
+		WebLM: 135.9.181.63 ********
+		EASG: 1
+		CM Privileged: cust 	pass: cust_12Cust
+		next > Finish
+	+ Edit setting ova moi cai
+		Edit> setting > Resources/CPU/Reservation: 0
+		Power on: new Ova
+	+Web CM doi pass
+	+Remote lay root
+		using passwd root de change pass root, sroot init
+		********
+	+ Config CM // putty to CM using (init user)
+		a/ save trans all > reset system 4
+		b/ change system-parameters customer-option //nen bat 1 con CM khac len va lam theo
+		c/ Goto SMGR > Router> entity link tao link SM and CM
+		d/ add ip-interface proc
+		e/ change node-names ip			 SM:245101:10.255.245.102
+		f/ change dialplan analysis 	 # 4 dac		* 4 dac 	245103	10 ext
+		g/ change system-parameters features	
+			trunk to trunk: all
+			goto page(8): 	QSI TSC Extension: 2451039999
+							subonbe: 10
+							AUDIX: yes		manua lug	10
+							Extemsion:		2451039998
+		h/ change features-access-codes		---(AAA):	#111
+		i/ add sigg___-group 1
+		j/ addd trunk-group 1
+		k/ change route-parameters 1
+		l/ change aar analysis 2	245103 10 10 1 lev0 //nen save trans all + reset system 4
+		m/ change private numbering 2		10 245103		10(total len)
+		n/ change uniform-dialplan 2		245103 10 0 aar
+		o/ change ip-codec-set 1		
+			G.711A n 2 20 (trang 1)	
+			Allow precto-ip y 		FAX: t.38_standard		(trang 2)
+		p/ change ip-network-region 1		domain: aam1.com	
+		q/ change cor 1		caller party restaction: none
+			save trans all
+		*********Sync cm voi SMGR
+			+ Goto CM create> Administrator Acounts
+			+ Goto SMGR services>inventory>manage element
+	####SMGR Config note
+		***config AADS: //luu y add data center Session Manager> System Status> User Data Store
+		
+	#########################################################################################################################
+	~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~SETUP AUTOMATION FOR MAC~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	#########################################################################################################################
+	//How to setup iOS Automation testing on MacOS
+	https://medium.com/2359media/tutorial-automated-testing-on-ios-with-appium-test-ng-and-java-on-mac-bc115d0ec881
+	
+	*********Step by Step
+                
+		1. Java (JDK)
+		2. Appium + Appium Doctor
+		3. Xcode
+		4. Xcode command line tools
+		5. WebDriverAgent
+		6. Real Devices OR Simulators
+		7. IDE (eclipse)
+		8. Homebrew
+		9. Carthage //cai nay dung de build duoc file WebDriverAgent len ios ne`
+		10. authorize-ios
+		11. ios-deploy
+		12. ideviceinstaller
+		13. ios_webkit_debug_proxy
+		14. Maven
+		15. Eclipse // Cai neu muon development script java
+		16. TestNg // k nhat thiet phai cai
+		17. Node & NPM
+		
+	+ Step 1: Install Homebrew
+		/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+		https://brew.sh/
+	
+	+ Step 2: Install Carthage
+		brew install carthage
+		//In order to launch WebDriverAgent, your macOS will need to have Carthage installed
+		//(Not needed for automation on android)
+		
+	+ Step 3: Install Node & NPM
+		brew install node
+	
+	+ Step 4: Install Java JDK and set JAVA_HOME
+		//Download the JDK, jdk-8u181-macosx-x64.dmg, from this link:
+		http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html.
+		java -version //test java
+		
+		//Set environment variables
+		vim ~/.bash_profile
+		export JAVA_HOME=[path of your java home] //"/Library/Java/JavaVirtualMachines/jdk1.8.0_171.jdk/Contents/Home"
+		export PATH=$JAVA_HOME/bin:$PATH
+		echo $JAVA_HOME //Check path and java_home
+		
+	+ Step 5: Install Appium : 
+		npm install -g appium@1.13.0 //neu k set version thi tu dong download ban moi nhat 
+		Install Appium Desktop (optional)
+
+	+ Step 6: Get XCode
+		********Xcode + MacOS upgrade to last version
+		//Xcode is the development and debug environment on Mac.
+		//Provides required tools, files for dev/automation for Mac and iOS apps
+	
+	+ Step 7: Install authorize-ios
+		npm install -g authorize-ios
+	
+	+ Step 8: Install ios-deploy
+		brew install ios-deploy
+	
+	+ Step 9: Install XCode command line tools
+		//Open terminal and run 
+		xcode-select --install
+		????sudo xcode-select -r
+	
+	+ Step 10: Install ideviceinstaller
+		brew install ideviceinstaller
+		
+	+ Step 11: Install ios_webkit_debug_proxy
+		brew install ios-webkit-debug-proxy
+
+	+ Step 12: Install Appium Doctor
+		npm install -g appium-doctor
+		appium-doctor // check all install for automation need for appium
+		
+	+ Step 13: Install Maven 
+		brew install maven
+		mvn -version
+		vim ~/.bash_profile
+		export PATH=/usr/local/Cellar/maven/3.5.4/bin:$PATH 	//Be sure to set the version number as per the version you installed
+	
+	+ Step 14: Install Eclipse //not requirement
+	Download and install Eclipse IDE for Java EE Developers from https://www.eclipse.org/downloads/packages/
+	
+	+ Step 15: Create Apple ID
+		Goto Xcode - preferences - account
+		Add Apple ID
+		
+	+ Step 16: Initialize WebDriverAgent project
+	
+		//On terminal cd to WebDriverAgent folder
+		WebDriverAgent driver will be found in /path/where/installed/lib/node_modules/appium/node_modules/appium-xcuitest-driver/WebDriverAgent 
+		
+		//For Appium Desktop
+		/Applications/Appium.app/Contents/Resources/app/node_modules/appium/node_modules/appium-xcuitest-driver/WebDriverAgent 
+		
+		//For Appium Installed through node
+		/usr/local/lib/node_modules/appium/node_modules/appium-xcuitest-driver/WedDriverAgent
+
+		mkdir -p Resources/WebDriverAgent.bundle
+		./Scripts/bootstrap.sh -d
+
+		********Note: this command needs Carthage to be installed
+
+	+ Step 17: Open WebDriverAgent.xcodeproj in Xcode 
+    
+		Project name : WebDriverAgent.xcodeproj
+		Location : 
+
+		//For Appium Desktop
+		/Applications/Appium.app/Contents/Resources/app/node_modules/appium/node_modules/appium-xcuitest-driver/WebDriverAgent 
+		
+		//For Appium Installed through node
+		/usr/local/lib/node_modules/appium/node_modules/appium-xcuitest-driver/WedDriverAgent
+
+	+ Step 18: Under the project in Xcode
+		For WebDriverAgentLib and WebDriverAgentRunner targets, go to general tab and select "Automatically manage signing", and then select your Development Team 
+		
+		*********Xcode may fail to create a provisioning profile for the WebDriverAgentRunner target: 
+			Failed to create provisioning profile
+			No profile for ‘…..’ were found 
+			Solution:
+			manually change the bundle id for the target by going into the "Build Settings" tab, and changing the "Product Bundle Identifier" from com.facebook.WebDriverAgentRunner to something that Xcode will accept: 
+			Going back to the "General" tab for the WebDriverAgentRunner target, you should now see that it has created a provisioning profile and all is well: 
+			Clean - Build - Run
+
+	+ Finally, you can verify that everything works. Build the project: 
+		xcodebuild -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination 'id=udid' test 
+		udid = device UDID
+	
+		//To get the udid of the real device connected 
+		A9F18306-6B22-442B-99F4-F217A5EE8D38
+		xcodebuild -project WebDriverAgent.xcodeproj -scheme WebDriverAgentRunner -destination 'id=A9F18306-6B22-442B-99F4-F217A5EE8D38' test 
+ 
+		npm install -g ios-deploy
+		ios-deploy -c 
+		OR
+		instruments -s devices //xem udid cua thiet bi dang ket noi tren mac
+
+	+ Step 19: Create a project and add desired capabilities for automation on iOS
+		deviceName
+		platformName
+		platformVersion
+		app
+
+	+ Open Eclipse
+		Create a new maven project or use any existing maven project
+		Add maven dependencies 
+		appium 
+		selenium
+		{
+		  DesiredCapabilities cap = new DesiredCapabilities();
+		  cap.setCapability("platformName", "iOS");
+		  cap.setCapability("platformVersion", "11.4");
+		  cap.setCapability("deviceName", "iPhone 8");
+		  cap.setCapability(CapabilityType.BROWSER_NAME, "safari");
+		  cap.setCapability("app", “location of .app or .ipa file“);
+		 
+		  URL url = new URL("http://127.0.0.1:4723/wd/hub");
+		  
+		  IOSDriver driver = new IOSDriver(url, cap);
+		} 
+	+ External tools/utilities may be required
+		
+		//Install authorize-ios
+		npm install -g authorize-ios
+		
+		//Install libimobiledevice 
+		brew install libimobiledevice 
+
+		//Install ideviceinstaller / ios-deploy
+			To deploy our apps to our devices. We can install and debug apps from the command line without using Xcode
+			sudo xcode-select -r
+			brew install ideviceinstaller
+			ideviceinstaller doesn't work with iOS 10 yet. So we need to install ios-deploy
+			npm install -g ios-deploy
+
+		//Install  ios_webkit_debug_proxy
+			brew install ios-webkit-debug-proxy
+			
+#########################################################################################################################
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~AUTOMATION MAC CLIENT~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#########################################################################################################################
+https://appiumpro.com/editions/52
+
+	
+ 
